@@ -4,12 +4,12 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, Messa
 
 # ================= CONFIGURATION =================
 # 1. Paste your Telegram Bot Token from BotFather here
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # 2. Create a Telegram Group, add your bot and your co-admin to it. 
 #    Get the Group Chat ID (you can use @userinfobot or @RawDataBot to find it).
 #    It will look like a negative number, e.g., -1001234567890
-ADMIN_GROUP_ID = -1001234567890  # <-- CHANGE THIS
+ADMIN_GROUP_ID = int(os.getenv("ADMIN_GROUP_ID"))  # <-- CHANGE THIS
 # =================================================
 
 # Enable logging
