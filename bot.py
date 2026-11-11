@@ -37,9 +37,7 @@ B4U_QUESTIONS = [
 
 # ================= DATABASE =================
 def init_db():
-    # Ensure the directory exists (for Railway Volume)
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
@@ -69,13 +67,21 @@ def update_order_status(order_id, status, claimed_by=None):
     conn.commit()
     conn.close()
 
-def get_order_stats():
+def get_detailed_stats():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    
     cursor.execute("SELECT status, COUNT(*) FROM orders GROUP BY status")
-    stats = dict(cursor.fetchall())
+    counts = dict(cursor.fetchall())
+    
+    cursor.execute("SELECT order_id, type FROM orders WHERE status = 'Open' ORDER BY order_id DESC LIMIT 15")
+    open_orders = cursor.fetchall()
+    
+    cursor.execute("SELECT order_id, type, claimed_by FROM orders WHERE status = 'Claimed' ORDER BY order_id DESC LIMIT 15")
+    claimed_orders = cursor.fetchall()
+    
     conn.close()
-    return stats
+    return counts, open_orders, claimed_orders
 
 # ================= MENUS & BUTTONS =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -83,7 +89,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_text = (
         "🎁 <b>Welcome to the Paradise Kitchen Bot!</b>\n\n"
         "Please choose an option below:\n\n"
-        "📝 <b>Note:</b> You can type /stop at any time to cancel.\n\n"
+        "📝 <b>Note:</b> You can type /stop at any time to cancel."
     )
     keyboard = [
         [InlineKeyboardButton("💸 Submit Refund Form", callback_data="start_refund")],
@@ -279,14 +285,33 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = query.message.text_html + f"\n\n✅ <b>Status: CLOSED</b>"
         await query.edit_message_text(text=text, reply_markup=None, parse_mode="HTML")
 
+# ================= STATS COMMAND =================
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id != ADMIN_GROUP_ID: return
-    stats = get_order_stats()
+    
+    counts, open_orders, claimed_orders = get_detailed_stats()
+    
     msg = "📊 <b>Order Tracking Stats</b>\n\n"
-    msg += f"🟢 <b>Open:</b> {stats.get('Open', 0)}\n"
-    msg += f"🤝 <b>Claimed:</b> {stats.get('Claimed', 0)}\n"
-    msg += f"✅ <b>Closed:</b> {stats.get('Closed', 0)}\n"
-    await update.message.reply_text(msg, parse_mode="HTML")
+    msg += f"🟢 <b>Open:</b> {counts.get('Open', 0)} | 🤝 <b>Claimed:</b> {counts.get('Claimed', 0)} | ✅ <b>Closed:</b> {counts.get('Closed', 0)}\n\n"
+    
+    msg += "🟢 <b>Open Orders:</b>\n"
+    if not open_orders:
+        msg += "<i>None</i>\n"
+    else:
+        for order_id, o_type in open_orders:
+            msg += f"• <code>{order_id}</code> ({o_type.capitalize()})\n"
+            
+    msg += "\n🤝 <b>Claimed Orders:</b>\n"
+    if not claimed_orders:
+        msg += "<i>None</i>\n"
+    else:
+        for order_id, o_type, claimed_by in claimed_orders:
+            msg += f"• <code>{order_id}</code> ({o_type.capitalize()}) - <i>Claimed by {claimed_by}</i>\n"
+            
+    if len(msg) > 4000:
+        await update.message.reply_text("📊 <b>Stats too long to display fully.</b> Please close some orders to see the list.", parse_mode="HTML")
+    else:
+        await update.message.reply_text(msg, parse_mode="HTML")
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get('in_form'):
