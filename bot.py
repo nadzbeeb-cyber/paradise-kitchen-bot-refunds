@@ -84,7 +84,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🎁 <b>Welcome to the Paradise Kitchen Bot!</b>\n\n"
         "Please choose an option below:\n\n"
         "📝 <b>Note:</b> You can type /stop at any time to cancel.\n\n"
-        "For B4U orders dm @chefsatoshii"
     )
     keyboard = [
         [InlineKeyboardButton("💸 Submit Refund Form", callback_data="start_refund")],
