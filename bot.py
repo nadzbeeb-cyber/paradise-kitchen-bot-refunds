@@ -11,6 +11,11 @@ ADMIN_GROUP_ID = int(os.getenv("ADMIN_GROUP_ID", "0"))
 
 # Railway Volume path for the database
 DB_PATH = "/app/data/orders.db" 
+
+# --- YOUR LINKS ---
+GROUP_LINK = "https://t.me/+p9UywWB_4MMxZGNh"
+STORE_NA_LINK = "https://rentry.co/3v7b9vus"
+STORE_EU_LINK = "https://rentry.co/zzhinprb"
 # =================================================
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -86,12 +91,23 @@ def get_detailed_stats():
 # ================= MENUS & BUTTONS =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
+    
+    # Embedded links in the text using HTML format
     welcome_text = (
-        "🎁 <b>Welcome to the Paradise Kitchen Bot!</b>\n\n"
-        "Please choose an option below:\n\n"
-        "📝 <b>Note:</b> You can type /stop at any time to cancel."
+        "🎁 <b>Welcome to the Paradise Club!</b>\n\n"
+        "Join our community and browse our store lists:\n"
+        "💬 <a href='https://t.me/+p9UywWB_4MMxZGNh'>Join Our Telegram Group</a>\n"
+        "🇺🇸 <a href='https://rentry.co/3v7b9vus'>North America Store List</a>\n"
+        "🇪🇺 <a href='https://rentry.co/zzhinprb'>Europe Store List</a>\n\n"
+        "💬 <b>Support:</b> @chefsatoshii\n"
+        "📝 <b>Note:</b> You can type /stop at any time to cancel a form."
     )
+    
+    # Buttons for easy access
     keyboard = [
+        [InlineKeyboardButton("💬 Join Our Group", url=GROUP_LINK)],
+        [InlineKeyboardButton("🇺🇸 North America Store List", url=STORE_NA_LINK)],
+        [InlineKeyboardButton("🇪🇺 Europe Store List", url=STORE_EU_LINK)],
         [InlineKeyboardButton("💸 Submit Refund Form", callback_data="start_refund")],
         [InlineKeyboardButton("🛍️ B4U Orders", callback_data="start_b4u")]
     ]
